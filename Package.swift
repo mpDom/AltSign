@@ -19,28 +19,18 @@ let package = Package(
             name: "AltSign-Dynamic",
             type: .dynamic,
             targets: ["AltSign"]
-        ),
-        .library(
-            name: "OpenSSL",
-            targets: ["OpenSSL"]
         )
     ],
 
     dependencies: [
-        .package(url: "https://github.com/mahee96/CodeSignKit.git", branch: "main"),
-        .package(url: "https://github.com/mahee96/GSACryptoKit.git", branch: "main")
+//        .package(url: "https://github.com/mahee96/CodeSignKit.git",  branch: "main"),
+//        .package(url: "https://github.com/mahee96/GSACryptoKit.git", branch: "main")
 
-//        .package(name: "CodeSignKit",  path: "../../local/CodeSignKit"),
-//        .package(name: "GSACryptoKit", path: "../../local/GSACryptoKit")
+        .package(name: "CodeSignKit",  path: "../../local/CodeSignKit"),
+        .package(name: "GSACryptoKit", path: "../../local/GSACryptoKit")
     ],
 
     targets: [
-        .binaryTarget(
-            name: "OpenSSL",
-            url: "https://github.com/krzyzanowskim/OpenSSL/releases/download/3.6.2000/OpenSSL.xcframework.zip",
-            checksum: "37846a8bd302cb2443eff47f1045ab844d0cd40bf82cc6159cfad9aa5c3eff9e"
-        ),
-
         // ─────────────────────────
         // C / C++ bridge
         // ─────────────────────────
@@ -102,7 +92,6 @@ let package = Package(
             name: "AltSign",
             dependencies: [
                 "NativeBridge",
-                "OpenSSL",
                 "CodeSignKit",
                 "GSACryptoKit"
             ],

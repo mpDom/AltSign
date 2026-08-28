@@ -223,7 +223,7 @@ public final class ALTCertificate: NSObject, Identifiable {
         }
 
         guard let parsed = CertificatesManager.parseCertificate(pemData) else {
-            throw ALTCertificateError.extractionFailed(cause: "Failed to parse certificate subject or fields. OpenSSL: \(getOpenSSLError())")
+            throw ALTCertificateError.extractionFailed(cause: "Failed to parse certificate subject or fields.")
         }
 
         var serial = parsed.serial
