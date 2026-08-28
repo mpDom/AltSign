@@ -7,9 +7,14 @@
 //
 
 import Foundation
-import NativeBridge
+import minizip_ng
 
 public enum Archive {
+
+    public typealias ReaderHandle = UnsafeMutableRawPointer
+    public typealias WriterHandle = UnsafeMutableRawPointer
+    public typealias FileInfo = mz_zip_file
+    public typealias FileInfoPointer = UnsafeMutablePointer<mz_zip_file>
 
     public struct Entry: Sendable, Hashable {
         public let filename: String
@@ -45,14 +50,16 @@ public enum Archive {
 
     public final class Reader {
 
-        private let handle: native_bridge_unzFile
+        private let handle: ReaderHandle
 
-        private init(_ handle: native_bridge_unzFile) {
+        private init(_ handle: ReaderHandle) {
             self.handle = handle
         }
 
         deinit {
-            native_bridge_unzClose(handle)
+            var r: ReaderHandle? = handle
+            mz_zip_reader_close(handle)
+            mz_zip_reader_delete(&r)
         }
 
         public static func open(at url: URL) throws -> Reader {
@@ -61,72 +68,73 @@ public enum Archive {
                 debugLog("[AltSign] Archive.Reader.open failed: file not found at \(url.path)")
                 throw Archive.Error.fileNotFound(url)
             }
-            var status: Int32 = 0
-            guard let h = url.path.withCString({
-                native_bridge_unzOpenWithStatus($0, &status)
-            }) else {
-                debugLog("[AltSign] Archive.Reader.open failed with minizip-ng status: \(status)")
-                if status == -111 /* MZ_OPEN_ERROR */ {
+            guard let reader = mz_zip_reader_create() else {
+                throw Archive.Error.corruptArchive(url)
+            }
+            let err = url.path.withCString {
+                mz_zip_reader_open_file(reader, $0)
+            }
+            guard err == MZ_OK else {
+                debugLog("[AltSign] Archive.Reader.open failed with minizip-ng error: \(err)")
+                var r: ReaderHandle? = reader
+                mz_zip_reader_delete(&r)
+                if err == MZ_OPEN_ERROR {
                     throw Archive.Error.readFailed(url)
                 }
                 throw Archive.Error.corruptArchive(url)
             }
             verboseLog("[AltSign] Archive.Reader.open succeeded")
-            return Reader(h)
+            return Reader(reader)
         }
 
         public func goToFirstFile() throws {
             verboseLog("[AltSign] Archive.Reader.goToFirstFile called")
-            guard native_bridge_unzGoToFirstFile(handle) == 0 else {
+            guard mz_zip_reader_goto_first_entry(handle) == MZ_OK else {
                 debugLog("[AltSign] Archive.Reader.goToFirstFile failed")
                 throw Archive.Error.readFailed(.init(fileURLWithPath: ""))
             }
         }
 
         public func goToNextFile() -> Bool {
-            let hasNext = native_bridge_unzGoToNextFile(handle) == 0
+            let hasNext = mz_zip_reader_goto_next_entry(handle) == MZ_OK
             verboseLog("[AltSign] Archive.Reader.goToNextFile called. Has next file: \(hasNext)")
             return hasNext
         }
 
         public func currentFilename() throws -> String {
-            var info = [UInt8](repeating: 0, count: 256)
-            var name = [CChar](repeating: 0, count: 1024)
-
-            let r = native_bridge_unzGetCurrentFileInfo(
-                handle,
-                &info,
-                &name,
-                1024
-            )
-
-            guard r == 0 else {
-                debugLog("[AltSign] Archive.Reader.currentFilename failed to get info from native bridge")
+            var fileInfo: FileInfoPointer? = nil
+            guard mz_zip_reader_entry_get_info(handle, &fileInfo) == MZ_OK,
+                  let info = fileInfo?.pointee,
+                  let cName = info.filename else {
+                debugLog("[AltSign] Archive.Reader.currentFilename failed to get info from minizip-ng")
                 throw Archive.Error.readFailed(.init(fileURLWithPath: ""))
             }
 
-            let filename = String(cString: name)
+            let filename = String(cString: cName)
             verboseLog("[AltSign] Archive.Reader.currentFilename retrieved: \(filename)")
             return filename
         }
 
         public func currentFileExternalAttributes() -> UInt32 {
-            return native_bridge_unzGetCurrentFileExternalAttributes(handle)
+            var fileInfo: FileInfoPointer? = nil
+            if mz_zip_reader_entry_get_info(handle, &fileInfo) == MZ_OK,
+               let info = fileInfo?.pointee {
+                return info.external_fa
+            }
+            return 0
         }
 
         public func currentEntry() throws -> Entry {
-            var info = native_bridge_zip_entry_info()
-            guard native_bridge_unzGetCurrentEntryInfo(handle, &info) == 0 else {
+            var fileInfo: FileInfoPointer? = nil
+            guard mz_zip_reader_entry_get_info(handle, &fileInfo) == MZ_OK,
+                  let info = fileInfo?.pointee else {
                 debugLog("[AltSign] Archive.Reader.currentEntry failed to read entry info")
                 throw Archive.Error.readFailed(.init(fileURLWithPath: ""))
             }
 
-            let filenameWithPtr = withUnsafeBytes(of: &info.filename) { rawBuffer in
-                String(cString: rawBuffer.baseAddress!.assumingMemoryBound(to: CChar.self))
-            }
-
+            let filename = info.filename != nil ? String(cString: info.filename) : ""
             return Entry(
-                filename: filenameWithPtr,
+                filename: filename,
                 uncompressedSize: info.uncompressed_size,
                 compressedSize: info.compressed_size,
                 crc: info.crc,
@@ -146,27 +154,25 @@ public enum Archive {
 
         public func readCurrentFile() throws -> Data {
             verboseLog("[AltSign] Archive.Reader.readCurrentFile started")
-            guard native_bridge_unzOpenCurrentFile(handle) == 0 else {
-                debugLog("[AltSign] Archive.Reader.readCurrentFile failed: native_bridge_unzOpenCurrentFile returned error")
+            guard mz_zip_reader_entry_open(handle) == MZ_OK else {
+                debugLog("[AltSign] Archive.Reader.readCurrentFile failed: mz_zip_reader_entry_open returned error")
                 throw Archive.Error.readFailed(.init(fileURLWithPath: ""))
             }
 
             defer {
-                native_bridge_unzCloseCurrentFile(handle)
+                mz_zip_reader_entry_close(handle)
             }
 
             var result = Data()
             var buffer = [UInt8](repeating: 0, count: 32_768)
 
             while true {
-                let read = native_bridge_unzReadCurrentFile(
-                    handle,
-                    &buffer,
-                    UInt32(buffer.count)
-                )
+                let read = buffer.withUnsafeMutableBytes { rawBuf in
+                    mz_zip_reader_entry_read(handle, rawBuf.baseAddress, Int32(rawBuf.count))
+                }
 
                 if read < 0 {
-                    debugLog("[AltSign] Archive.Reader.readCurrentFile failed: native_bridge_unzReadCurrentFile returned error code \(read)")
+                    debugLog("[AltSign] Archive.Reader.readCurrentFile failed: mz_zip_reader_entry_read returned error code \(read)")
                     throw Archive.Error.readFailed(.init(fileURLWithPath: ""))
                 }
 
@@ -182,10 +188,10 @@ public enum Archive {
         public func extractCurrentFile(to destinationURL: URL) throws {
             verboseLog("[AltSign] Archive.Reader.extractCurrentFile(to: \(destinationURL.path)) started")
             let result = destinationURL.path.withCString {
-                native_bridge_unzExtractCurrentFileToFile(handle, $0)
+                mz_zip_reader_entry_save_file(handle, $0)
             }
-            guard result == 0 else {
-                debugLog("[AltSign] Archive.Reader.extractCurrentFile failed: native_bridge_unzExtractCurrentFileToFile returned error")
+            guard result == MZ_OK else {
+                debugLog("[AltSign] Archive.Reader.extractCurrentFile failed: mz_zip_reader_entry_save_file returned error")
                 throw Archive.Error.readFailed(destinationURL)
             }
             verboseLog("[AltSign] Archive.Reader.extractCurrentFile completed successfully")
@@ -194,39 +200,46 @@ public enum Archive {
 
     public final class Writer {
 
-        private let handle: native_bridge_zipFile
+        private let handle: WriterHandle
 
-        private init(_ handle: native_bridge_zipFile) {
+        private init(_ handle: WriterHandle) {
             self.handle = handle
         }
 
         deinit {
             verboseLog("[AltSign] Archive.Writer.deinit closing zip handle")
-            native_bridge_zipClose(handle)
+            var w: WriterHandle? = handle
+            mz_zip_writer_close(handle)
+            mz_zip_writer_delete(&w)
         }
 
         public static func create(at url: URL) throws -> Writer {
             verboseLog("[AltSign] Archive.Writer.create(at: \(url.path)) started")
-            var status: Int32 = 0
-            guard let h = url.path.withCString({
-                native_bridge_zipOpenWithStatus($0, &status)
-            }) else {
-                debugLog("[AltSign] Archive.Writer.create failed with minizip-ng status: \(status)")
+            guard let writer = mz_zip_writer_create() else {
+                throw Archive.Error.writeFailed(url)
+            }
+            let err = url.path.withCString {
+                mz_zip_writer_open_file(writer, $0, 0, 0)
+            }
+            guard err == MZ_OK else {
+                debugLog("[AltSign] Archive.Writer.create failed with minizip-ng error: \(err)")
+                var w: WriterHandle? = writer
+                mz_zip_writer_delete(&w)
                 throw Archive.Error.writeFailed(url)
             }
             verboseLog("[AltSign] Archive.Writer.create succeeded")
-            return Writer(h)
+            return Writer(writer)
         }
 
         public func setCompressLevel(_ level: Int16) {
-            native_bridge_zipSetCompressLevel(handle, level)
+            mz_zip_writer_set_compress_level(handle, level)
         }
 
         public func addFile(at fileURL: URL, pathInZip: String) throws {
             verboseLog("[AltSign] Archive.Writer.addFile started for file: \(fileURL.path) -> \(pathInZip)")
             let ok = fileURL.path.withCString { sourcePath in
                 pathInZip.withCString { zipPath in
-                    native_bridge_zipAddFile(handle, sourcePath, zipPath) == 0
+                    mz_zip_writer_add_file(handle, sourcePath, zipPath) == MZ_OK
                 }
             }
             guard ok else {
@@ -239,17 +252,22 @@ public enum Archive {
         public func writeFile(path: String, data: Data?, permissions: UInt32) throws {
             verboseLog("[AltSign] Archive.Writer.writeFile started for internal path: '\(path)', data size: \(data?.count ?? 0) bytes, permissions: \(String(format: "%0o", permissions))")
 
-            let openOK = path.withCString {
-                native_bridge_zipOpenNewFileInZipWithPermissions(handle, $0, permissions)
-            } == 0
+            var fileInfo = FileInfo()
+            fileInfo.external_fa = permissions << 16
+            fileInfo.compression_method = UInt16(MZ_COMPRESS_METHOD_DEFLATE)
+
+            let openOK = path.withCString { cPath in
+                fileInfo.filename = cPath
+                return mz_zip_writer_entry_open(handle, &fileInfo) == MZ_OK
+            }
 
             guard openOK else {
-                debugLog("[AltSign] Archive.Writer.writeFile failed: native_bridge_zipOpenNewFileInZipWithPermissions returned error")
+                debugLog("[AltSign] Archive.Writer.writeFile failed: mz_zip_writer_entry_open returned error")
                 throw Archive.Error.writeFailed(.init(fileURLWithPath: path))
             }
 
             defer {
-                native_bridge_zipCloseFileInZip(handle)
+                mz_zip_writer_entry_close(handle)
             }
 
             guard let data else {
@@ -257,16 +275,17 @@ public enum Archive {
                 return
             }
 
-            let ok = data.withUnsafeBytes {
-                native_bridge_zipWriteInFileInZip(
+            let ok = data.withUnsafeBytes { rawBuf in
+                let written = mz_zip_writer_entry_write(
                     handle,
-                    $0.baseAddress,
-                    UInt32(data.count)
+                    rawBuf.baseAddress,
+                    Int32(data.count)
                 )
-            } == 0
+                return written == Int32(data.count)
+            }
 
             guard ok else {
-                debugLog("[AltSign] Archive.Writer.writeFile failed: native_bridge_zipWriteInFileInZip returned error")
+                debugLog("[AltSign] Archive.Writer.writeFile failed: mz_zip_writer_entry_write returned error")
                 throw Archive.Error.writeFailed(.init(fileURLWithPath: path))
             }
 
