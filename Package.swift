@@ -5,13 +5,16 @@ import PackageDescription
 let package = Package(
     name: "AltSign",
     platforms: [
-        .iOS(.v14),
-        .macOS(.v11)
+        .iOS(.v15),
+        .macOS(.v12),
+        .tvOS(.v15),
+        .watchOS(.v8),
+        .visionOS(.v1)
     ],
 
     products: [
         .library(
-            name: "AltSign-Static",
+            name: "AltSign",
             type: .static,
             targets: ["AltSign"]
         ),
@@ -19,27 +22,27 @@ let package = Package(
             name: "AltSign-Dynamic",
             type: .dynamic,
             targets: ["AltSign"]
-        )
+        ),
     ],
 
     dependencies: [
         .package(url: "https://github.com/mahee96/CodeSignKit.git",  branch: "main"),
         .package(url: "https://github.com/mahee96/GSACryptoKit.git", branch: "main"),
-        .package(url: "https://github.com/SideStore/minizip-ng",     branch: "develop")
+        .package(url: "https://github.com/SideStore/minizip-ng",     branch: "develop"),
+        .package(url: "https://github.com/mahee96/AnisetteKit.git",   branch: "main")
 
 //        .package(name: "CodeSignKit",  path: "../../local/CodeSignKit"),
 //        .package(name: "GSACryptoKit", path: "../../local/GSACryptoKit"),
-//        .package(name: "minizip-ng",   path: "../minizip-ng")
+//        .package(name: "minizip-ng",   path: "../../minizip-ng")
+//        .package(name: "minizip-ng",   path: "../../AnisetteKit")
     ],
 
     targets: [
-        // ─────────────────────────
-        // Main Swift target
-        // ─────────────────────────
         .target(
             name: "AltSign",
             dependencies: [
                 .product(name: "minizip-ng", package: "minizip-ng"),
+                "AnisetteKit",
                 "CodeSignKit",
                 "GSACryptoKit"
             ],
