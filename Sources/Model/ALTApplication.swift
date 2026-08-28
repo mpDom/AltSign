@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftBridge
 
 #if canImport(UIKit)
 import UIKit
@@ -200,12 +199,11 @@ private extension ALTApplication {
     }
 
     func loadEntitlementsString() -> String {
-
         if let cachedEntitlementsString {
             return cachedEntitlementsString
         }
 
-        let string = (try? LdidBridge.entitlements(at: fileURL)) ?? ""
+        let string = (try? MachOParser.entitlements(at: fileURL)) ?? ""
 
         cachedEntitlementsString = string
         return string
@@ -236,7 +234,7 @@ private extension ALTApplication {
         if !certs.isEmpty {
             info += "Certificates (\(certs.count)):\n"
             for (index, cert) in certs.enumerated() {
-                let subject = SecCertificateCopySubjectSummary(cert) as String? ?? "Unknown Subject"
+                let subject = cert.name
                 info += "  [\(index)] \(subject)\n"
             }
         }

@@ -128,10 +128,6 @@ public enum CertificatesManager {
         return Data(bytes: rawPtr, count: len)
     }
 
-
-
-    // MARK: - Public API
-
     public static func generateCSR(
         subject: CSRSubject
     ) throws -> (csr: Data, privateKey: Data) {

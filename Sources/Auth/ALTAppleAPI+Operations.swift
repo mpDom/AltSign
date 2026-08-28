@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftBridge
 
 public extension ALTAppleAPI {
     

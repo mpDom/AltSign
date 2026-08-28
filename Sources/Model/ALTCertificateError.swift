@@ -3,6 +3,7 @@
 //  AltSign
 //
 //  Created by Magesh K.
+//  Copyright © 2026 SideStore. All rights reserved.
 //
 
 import Foundation

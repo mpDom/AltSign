@@ -4,8 +4,6 @@
 //
 
 import Foundation
-import SwiftBridge
-
 
 public final class ALTX509Certificate: NSObject, Identifiable {
 
@@ -303,7 +301,3 @@ public extension Data {
         return self[offset] == 0x02 // First element of PFX SEQUENCE must be INTEGER (version)
     }
 }
-
-public typealias ALTCertificateError = SwiftBridge.ALTCertificateError
-public typealias MachOParser = SwiftBridge.MachOParser
-public typealias MachOParserError = SwiftBridge.MachOParserError
