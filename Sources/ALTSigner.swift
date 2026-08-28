@@ -4,7 +4,7 @@
 //
 
 import Foundation
-import SwiftBridge
+import CodeSignKit
 
 
 public final class ALTSigner: NSObject {
@@ -165,12 +165,12 @@ private extension ALTSigner {
             try prepare(ext)
         }
 
-        // ---- LDID SIGNING VIA NATIVE BRIDGE ----
+        // ---- SWIFT CODESIGNER SIGNING ----
 
         let keyData = try certificate.unencryptedP12Data()
         
-        verboseLog("[AltSign] Invoking LdidBridge.sign for appPath: \(application.fileURL.path)")
-        try LdidBridge.sign(
+        verboseLog("[AltSign] Invoking CodeSigner.sign for appPath: \(application.fileURL.path)")
+        try CodeSigner.sign(
             appPath: application.fileURL.path,
             keyData: keyData,
             entitlementProvider: { path in
@@ -186,7 +186,7 @@ private extension ALTSigner {
                 let xml = entitlementsByURL[
                     url.resolvingSymlinksInPath()
                 ] ?? ""
-                verboseLog("[AltSign] Ldid entitlementProvider queried path: '\(path)', returning xml (length: \(xml.count))")
+                verboseLog("[AltSign] CodeSigner entitlementProvider queried path: '\(path)', returning xml (length: \(xml.count))")
                 return xml
             },
             progress: {

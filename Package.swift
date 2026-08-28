@@ -26,6 +26,11 @@ let package = Package(
         )
     ],
 
+    dependencies: [
+        .package(url: "https://github.com/mahee96/CodeSignKit.git", branch: "main"),
+        .package(url: "https://github.com/mahee96/GSACryptoKit.git", branch: "main")
+    ],
+
 
     targets: [
         .binaryTarget(
@@ -58,28 +63,7 @@ let package = Package(
                 "Dependencies/minizip-ng/mz_strm_wzaes.c",
                 "Dependencies/minizip-ng/mz_strm_zlib.c",
                 "Dependencies/minizip-ng/mz_zip.c",
-                "Dependencies/minizip-ng/mz_zip_rw.c",
-
-                "Dependencies/ldid/lookup2.c",
-                "Dependencies/ldid/libplist/src/base64.c",
-                "Dependencies/ldid/libplist/src/bplist.c",
-                "Dependencies/ldid/libplist/src/bytearray.c",
-                "Dependencies/ldid/libplist/src/common.c",
-                "Dependencies/ldid/libplist/src/hashtable.c",
-                "Dependencies/ldid/libplist/src/jplist.c",
-                "Dependencies/ldid/libplist/src/jsmn.c",
-                "Dependencies/ldid/libplist/src/oplist.c",
-                "Dependencies/ldid/libplist/src/out-default.c",
-                "Dependencies/ldid/libplist/src/out-limd.c",
-                "Dependencies/ldid/libplist/src/out-plutil.c",
-                "Dependencies/ldid/libplist/src/plist.c",
-                "Dependencies/ldid/libplist/src/ptrarray.c",
-                "Dependencies/ldid/libplist/src/time64.c",
-                "Dependencies/ldid/libplist/src/xplist.c",
-                "Dependencies/ldid/libplist/libcnary/node.c",
-                "Dependencies/ldid/libplist/libcnary/node_list.c",
-
-                "Dependencies/corecrypto/Sources/ccsrp.m"
+                "Dependencies/minizip-ng/mz_zip_rw.c"
             ],
 
             publicHeadersPath: "NativeBridge/include",
@@ -88,21 +72,11 @@ let package = Package(
                 .headerSearchPath("NativeBridge/include"),
                 .headerSearchPath("Dependencies/minizip-ng"),
 
-                .headerSearchPath("ldid"),
-                .headerSearchPath("Dependencies/ldid"),
-                .headerSearchPath("Dependencies/ldid/libplist/include"),
-                .headerSearchPath("Dependencies/ldid/libplist/src"),
-                .headerSearchPath("Dependencies/ldid/libplist/libcnary/include"),
-
-                .headerSearchPath("Dependencies/corecrypto/include"),
-                .headerSearchPath("Dependencies/corecrypto/include/corecrypto"),
-
                 .define("unix", to: "1"),
                 .define("HAVE_ZLIB", to: "1"),
                 .define("ZLIB_COMPAT", to: "1"),
                 .define("HAVE_WZAES", to: "1"),
                 .define("HAVE_PKCRYPT", to: "1"),
-                .define("CORECRYPTO_DONOT_USE_TRANSPARENT_UNION", to: "1"),
                 .define("NOCRYPT"),
                 .define("NOUNCRYPT"),
 
@@ -111,41 +85,31 @@ let package = Package(
 
             cxxSettings: [
                 .headerSearchPath("NativeBridge/include"),
-                .headerSearchPath("Dependencies/corecrypto/include"),
                 .unsafeFlags(["-w", "-fvisibility=hidden"])
             ],
 
             linkerSettings: [
                 .linkedLibrary("z"),
-                .linkedFramework("Security"),
-                // .linkedFramework("CommonCrypto"),
-                // .linkedFramework("OpenSSL")
             ]
         ),
 
         // ─────────────────────────
-        // Swift-safe bridge
+        // Main Swift target
         // ─────────────────────────
-        .target(
-            name: "SwiftBridge",
-            dependencies: ["NativeBridge", "OpenSSL"],
-            path: "SwiftBridge",
-            sources: [ "." ],
-            linkerSettings: [
-                .linkedFramework("CryptoKit"),      // AES-GCM, HMAC-SHA256, SHA256
-            ]
-        ),
-
-       // ─────────────────────────
-       // Main Swift target
-       // ─────────────────────────
         .target(
             name: "AltSign",
-            dependencies: ["SwiftBridge"],
-            path: "Sources"
+            dependencies: [
+                "NativeBridge",
+                "OpenSSL",
+                "CodeSignKit",
+                "GSACryptoKit"
+            ],
+            path: "Sources",
+            linkerSettings: [
+                .linkedFramework("CryptoKit"),
+            ]
         )
     ],
 
-    cLanguageStandard: .gnu11,
-    cxxLanguageStandard: .cxx14
+    cLanguageStandard: .gnu11
 )

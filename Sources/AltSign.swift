@@ -6,7 +6,9 @@
 //  Copyright © 2026 SideStore. All rights reserved.
 //
 
-import SwiftBridge
+import Foundation
+@_exported import CodeSignKit
+@_exported import GSACryptoKit
 
 public enum AltSign {
     public static var isLoggingEnabled: Bool {
