@@ -52,6 +52,20 @@ NATIVE_BRIDGE_EXPORT int native_bridge_zipClose(native_bridge_zipFile file);
 
 NATIVE_BRIDGE_EXPORT uint32_t native_bridge_unzGetCurrentFileExternalAttributes(native_bridge_unzFile file);
 
+typedef struct {
+    char filename[1024];
+    int64_t uncompressed_size;
+    int64_t compressed_size;
+    uint32_t crc;
+    uint32_t external_fa;
+} native_bridge_zip_entry_info;
+
+NATIVE_BRIDGE_EXPORT int native_bridge_unzGetCurrentEntryInfo(
+    native_bridge_unzFile file,
+    native_bridge_zip_entry_info *info
+);
+
 #ifdef __cplusplus
 }
 #endif
+

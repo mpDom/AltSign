@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftBridge
 
 extension FileManager {
 
@@ -25,7 +24,7 @@ extension FileManager {
         progress: Progress? = nil
     ) throws {
         verboseLog("[AltSign] FileManager.unzipArchive started for archive: \(archiveURL.path) to: \(directoryURL.path)")
-        let archive = try ZipBridge.Archive.open(at: archiveURL)
+        let archive = try Archive.Reader.open(at: archiveURL)
         try archive.goToFirstFile()
 
         repeat {
@@ -102,7 +101,7 @@ extension FileManager {
         }
 
         verboseLog("[AltSign] FileManager.unzipAppBundle error: missing app bundle inside Payload folder of \(ipaURL.path)")
-        throw ZipError.missingAppBundle(ipaURL)
+        throw Archive.Error.missingAppBundle(ipaURL)
     }
 
     public func unzipAppBundle(at ipaURL: URL, toDirectory directoryURL: URL) throws -> URL {
@@ -124,8 +123,9 @@ extension FileManager {
             try removeItem(at: ipaURL)
         }
 
-        let writer = try ZipBridge.Writer.create(at: ipaURL)
+        let writer = try Archive.Writer.create(at: ipaURL)
         writer.setCompressLevel(1) // Fast compression level for re-signing
+
 
         let payloadRoot =
             URL(fileURLWithPath: "Payload", isDirectory: true)

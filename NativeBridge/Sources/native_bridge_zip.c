@@ -208,3 +208,26 @@ uint32_t native_bridge_unzGetCurrentFileExternalAttributes(native_bridge_unzFile
     return 0;
 }
 
+int native_bridge_unzGetCurrentEntryInfo(
+    native_bridge_unzFile file,
+    native_bridge_zip_entry_info *info)
+{
+    void *reader = (void *)file;
+    if (!reader || !info) return -1;
+    mz_zip_file *file_info = NULL;
+    if (mz_zip_reader_entry_get_info(reader, &file_info) != MZ_OK || !file_info) {
+        return -1;
+    }
+    memset(info, 0, sizeof(native_bridge_zip_entry_info));
+    if (file_info->filename) {
+        strncpy(info->filename, file_info->filename, sizeof(info->filename) - 1);
+        info->filename[sizeof(info->filename) - 1] = '\0';
+    }
+    info->uncompressed_size = file_info->uncompressed_size;
+    info->compressed_size = file_info->compressed_size;
+    info->crc = file_info->crc;
+    info->external_fa = file_info->external_fa;
+    return 0;
+}
+
+
