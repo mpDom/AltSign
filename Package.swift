@@ -29,8 +29,10 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/mahee96/CodeSignKit.git", branch: "main"),
         .package(url: "https://github.com/mahee96/GSACryptoKit.git", branch: "main")
-    ],
 
+//        .package(name: "CodeSignKit",  path: "../../local/CodeSignKit"),
+//        .package(name: "GSACryptoKit", path: "../../local/GSACryptoKit")
+    ],
 
     targets: [
         .binaryTarget(
@@ -63,7 +65,7 @@ let package = Package(
                 "Dependencies/minizip-ng/mz_strm_wzaes.c",
                 "Dependencies/minizip-ng/mz_strm_zlib.c",
                 "Dependencies/minizip-ng/mz_zip.c",
-                "Dependencies/minizip-ng/mz_zip_rw.c"
+                "Dependencies/minizip-ng/mz_zip_rw.c",
             ],
 
             publicHeadersPath: "NativeBridge/include",
@@ -104,6 +106,7 @@ let package = Package(
                 "CodeSignKit",
                 "GSACryptoKit"
             ],
+
             path: "Sources",
             linkerSettings: [
                 .linkedFramework("CryptoKit"),

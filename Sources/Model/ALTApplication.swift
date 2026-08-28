@@ -208,9 +208,11 @@ private extension ALTApplication {
         cachedEntitlementsString = string
         return string
     }
+}
 
-    @objc
-    public func dumpMachOInfo() -> String {
+public extension ALTApplication {
+    @objc func dumpMachOInfo() -> String {
+
         let executableURL = bundle.executableURL ?? fileURL.appendingPathComponent(fileURL.deletingPathExtension().lastPathComponent)
         guard let parser = try? MachOParser(url: executableURL) else {
             return "[AltSign] MachOParser failed to load \(executableURL.lastPathComponent)"
@@ -234,9 +236,10 @@ private extension ALTApplication {
         if !certs.isEmpty {
             info += "Certificates (\(certs.count)):\n"
             for (index, cert) in certs.enumerated() {
-                let subject = cert.name
+                let subject = ALTX509Certificate(data: cert)?.name ?? "Certificate \(index + 1) (\(cert.count) bytes)"
                 info += "  [\(index)] \(subject)\n"
             }
+
         }
         
         let libs = parser.linkedLibraries()

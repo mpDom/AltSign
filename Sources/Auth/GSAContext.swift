@@ -121,7 +121,7 @@ extension GSAContext {
         }
 
         verboseLog("[AltSign] GSAContext.makeChecksum starting for appName: \(appName), dsid: \(dsid)")
-        let checksum = CoreCryptoBridge.hmacSHA256(
+        let checksum = CryptoUtilities.hmacSHA256(
             key: sessionKey,
             strings: ["apptokens", dsid, appName]
         )
@@ -141,7 +141,7 @@ internal extension GSAContext {
             return nil
         }
 
-        return CoreCryptoBridge.hmacSHA256(
+        return CryptoUtilities.hmacSHA256(
             key: sessionKey,
             strings: [string]
         )
@@ -157,17 +157,18 @@ private extension GSAContext {
     func makeX(password: String, salt: Data, iterations: Int, isHexadecimal: Bool) -> Data? {
         guard let passwordData = password.data(using: .utf8) else { return nil }
 
-        guard let digest = CoreCryptoBridge.sha256(passwordData) else { return nil }
+        guard let digest = CryptoUtilities.sha256(passwordData) else { return nil }
 
         let inputDigest: Data = isHexadecimal ? digest.hexadecimal() : digest
 
-        return CoreCryptoBridge.pbkdf2SHA256(
+        return CryptoUtilities.pbkdf2SHA256(
             password: inputDigest,
             salt: salt,
             rounds: iterations,
             outputLength: digest.count
         )
     }
+
 
     func makeM1(username: String, derivedPasswordKey x: Data, salt: Data, serverPublicKey B: Data) -> Data? {
         return srp?.processChallenge(

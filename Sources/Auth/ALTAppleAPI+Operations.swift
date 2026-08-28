@@ -174,7 +174,7 @@ public extension ALTAppleAPI {
                 return list
             }, resultCodeHandler: nil, error: &error) as? [ALTX509Certificate]
             
-            verboseLog("[AltSign] fetchCertificates completed: \(certificates?.map { "\($0.name ?? "nil") (\($0.identifier ?? "nil"))" } ?? [])")
+            verboseLog("[AltSign] fetchCertificates completed: \(certificates?.map { "\($0.name) (\($0.identifier ?? "nil"))" } ?? [])")
             completionHandler(certificates, error)
         }
     }
@@ -185,18 +185,19 @@ public extension ALTAppleAPI {
             completionHandler(nil, NSError(domain: ALTAppleAPIErrorDomain, code: ALTAppleAPIError.invalidCertificateRequest.rawValue, userInfo: nil))
             return
         }
-        
+
         let url = URL(string: "ios/submitDevelopmentCSR.action", relativeTo: self.baseURL)!
         guard let encodedCSR = String(data: request.data, encoding: .utf8) else {
             completionHandler(nil, NSError(domain: ALTAppleAPIErrorDomain, code: ALTAppleAPIError.invalidCertificateRequest.rawValue, userInfo: nil))
             return
         }
-        
+
         let parameters = [
             "csrContent": encodedCSR,
             "machineId": UUID().uuidString.uppercased(),
             "machineName": machineName
         ]
+
         
         self.sendRequest(url: url, additionalParameters: parameters, session: session, team: team) { responseDictionary, requestError in
             if let error = requestError {
@@ -229,7 +230,8 @@ public extension ALTAppleAPI {
     }
     
     func revoke(_ certificate: ALTX509Certificate, for team: ALTTeam, session: ALTAppleAPISession, completionHandler: @escaping (Bool, Error?) -> Void) {
-        verboseLog("[AltSign] revoke certificate starting for: \(certificate.name ?? "nil") (ID: \(certificate.identifier ?? "nil"))")
+        verboseLog("[AltSign] revoke certificate starting for: \(certificate.name) (ID: \(certificate.identifier ?? "nil"))")
+
         let url = URL(string: "certificates/\(certificate.identifier ?? "nil")", relativeTo: self.servicesBaseURL)!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"

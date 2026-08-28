@@ -4,6 +4,8 @@
 //
 
 import Foundation
+import CodeSignKit
+
 
 public final class ALTX509Certificate: NSObject, Identifiable {
 
@@ -245,8 +247,9 @@ public final class ALTCertificate: NSObject, Identifiable {
     // MARK: NSObject
 
     public override var description: String {
-        "<\(NSStringFromClass(Swift.type(of: self))): \(Unmanaged.passUnretained(self).toOpaque()), Name: \(name), SN: \(serialNumber), HasPrivateKey: \(privateKey != nil)>"
+        "<\(NSStringFromClass(Swift.type(of: self))): \(Unmanaged.passUnretained(self).toOpaque()), Name: \(name), SN: \(serialNumber), HasPrivateKey: \(!privateKey.isEmpty)>"
     }
+
 
     public override func isEqual(_ object: Any?) -> Bool {
         guard let other = object as? ALTCertificate else {
@@ -301,3 +304,14 @@ public extension Data {
         return self[offset] == 0x02 // First element of PFX SEQUENCE must be INTEGER (version)
     }
 }
+
+public extension MachOParser {
+    func x509Certificates() -> [ALTX509Certificate] {
+        return certificates().compactMap { ALTX509Certificate(data: $0) }
+    }
+
+    func certificate() -> ALTX509Certificate? {
+        return x509Certificates().first
+    }
+}
+

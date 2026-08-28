@@ -237,11 +237,12 @@ extension ALTAppleAPI {
                 verboseLog("[AltSign] sendRequest response non-dictionary payload: \(prettyJSONString(from: parsedObj))")
                 completionHandler(["result": parsedObj, "resultCode": 0], nil)
             } else {
-                let rawStr = String(data: data, encoding: .utf8) ?? data.hexEncodedString()
+                let rawStr = String(data: data, encoding: .utf8) ?? data.map { String(format: "%02hhx", $0) }.joined()
                 verboseLog("[AltSign] sendRequest failed to parse response plist/json. Raw: \(rawStr)")
                 completionHandler(nil, ALTServerError.invalidResponseFormat(rawPayload: rawStr))
             }
         }.resume()
+
     }
 }
 
@@ -359,11 +360,12 @@ extension ALTAppleAPI {
                     completionHandler(["result": json, "resultCode": 0], nil)
                 }
             } catch {
-                let rawStr = String(data: data, encoding: .utf8) ?? data.hexEncodedString()
+                let rawStr = String(data: data, encoding: .utf8) ?? data.map { String(format: "%02hhx", $0) }.joined()
                 verboseLog("[AltSign] sendServicesRequest failed to parse response JSON. Raw: \(rawStr)")
                 completionHandler(nil, ALTServerError.invalidResponseFormat(rawPayload: rawStr))
             }
         }.resume()
+
     }
 }
 

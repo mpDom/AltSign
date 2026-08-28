@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GSACryptoKit
 
 public extension ALTAppleAPI
 {
@@ -428,11 +429,14 @@ private extension ALTAppleAPI {
 
         requestCodeTask.resume()
     }
+}
 
-    public func fetchAccount(
+public extension ALTAppleAPI {
+    func fetchAccount(
         session: ALTAppleAPISession,
         completionHandler: @escaping (Result<ALTAccount, Error>) -> Void
     ) {
+
         verboseLog("[AltSign] fetchAccount starting for dsid: \(session.dsid)")
         let url = URL(string: "viewDeveloper.action", relativeTo: self.baseURL)!
 
@@ -690,7 +694,7 @@ private extension Data {
               let iv  = context.makeHMACKey("extra data iv:")
         else { return nil }
 
-        return CoreCryptoBridge.aesCBCDecrypt(key: key, iv: iv, ciphertext: self)
+        return CryptoUtilities.aesCBCDecrypt(key: key, iv: iv, ciphertext: self)
     }
 
     /* AES-GCM: layout is [3-byte version | 16-byte IV | ciphertext | 16-byte tag] */
@@ -708,6 +712,7 @@ private extension Data {
         let ciphertext = Data(self[versionSize + ivSize ..< self.count - tagSize])
         let tag        = Data(self[(self.count - tagSize)...])
 
-        return CoreCryptoBridge.aesGCMDecrypt(key: sessionKey, nonce: nonce, aad: aad, ciphertext: ciphertext, tag: tag)
+        return CryptoUtilities.aesGCMDecrypt(key: sessionKey, nonce: nonce, aad: aad, ciphertext: ciphertext, tag: tag)
     }
 }
+
