@@ -18,6 +18,7 @@ public enum AltSignLogging {
     }
 }
 
+@inline(__always)
 private func getTag(level: String) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"

@@ -74,6 +74,7 @@ public extension ALTAppleAPI
                     verboseLog("""
                     [AltSign] Received init response:
                       • c: \(c)
+                      • sp: \(responseDictionary["sp"] as? String ?? "nil")
                       • salt: \(salt.hexEncodedString())
                       • iterations: \(iterations)
                       • B: \(serverPublicKey.hexEncodedString())
@@ -104,6 +105,7 @@ public extension ALTAppleAPI
                     self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData) { result in
                         do {
                             let responseDictionary = try result.get()
+                            verboseLog("[AltSign] Received raw complete responseDictionary: \(responseDictionary)")
 
                             guard let serverVerificationMessage = responseDictionary["M2"] as? Data,
                                   let serverDictionary = responseDictionary["spd"] as? Data,
@@ -117,6 +119,7 @@ public extension ALTAppleAPI
                             [AltSign] Received complete response:
                               • M2: \(serverVerificationMessage.hexEncodedString())
                               • spd size: \(serverDictionary.count) bytes
+                              • Status: \(statusDictionary)
                             """)
 
                             guard context.verifyServerVerificationMessage(serverVerificationMessage) else {
