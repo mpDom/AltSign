@@ -581,7 +581,10 @@ private extension ALTAppleAPI {
     /// Renders a server payload for verbose logs: pretty JSON when possible, otherwise the
     /// raw UTF-8 text (e.g. an HTML error page), otherwise hex.
     func formatPayloadJSON(_ payload: Any) -> String {
-        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+        // isValidJSONObject first: data(withJSONObject:) raises an ObjC exception (not a Swift error)
+        // for non-JSON top-level objects such as Data, which try? cannot catch.
+        if JSONSerialization.isValidJSONObject(payload),
+           let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
            let jsonString = String(data: data, encoding: .utf8) {
             return jsonString
         }
