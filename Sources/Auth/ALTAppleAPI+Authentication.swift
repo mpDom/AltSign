@@ -500,7 +500,8 @@ private extension ALTAppleAPI {
                 "Content-Type": "text/x-xml-plist",
                 "X-MMe-Client-Info": anisetteData.deviceDescription,
                 "Accept": "*/*",
-                "User-Agent": "AuthKit/1 (Macintosh; OS X 26.5.2) (com.apple.dt.Xcode/26.0)"
+                "User-Agent": "AuthKit/1 (Macintosh; OS X 26.5.2) (com.apple.dt.Xcode/26.0)",
+                "Connection": "close"
             ]
 
             let bodyData = try PropertyListSerialization.data(fromPropertyList: parameters, format: .xml, options: 0)
@@ -587,7 +588,8 @@ private extension ALTAppleAPI {
             "X-MMe-Client-Info": anisetteData.deviceDescription,
             "X-Apple-I-Client-Time": dateFormatter.string(from: anisetteData.date),
             "X-Apple-Locale": anisetteData.locale.sanitizedIdentifier,
-            "X-Apple-I-TimeZone": anisetteData.timeZone.abbreviation() ?? "PST"
+            "X-Apple-I-TimeZone": anisetteData.timeZone.abbreviation() ?? "PST",
+            "Connection": "close"
         ]
 
         var request = URLRequest(url: url)
