@@ -575,6 +575,23 @@ private extension ALTAppleAPI {
     }
 }
 
+// MARK: - Logging helpers (used only within this file)
+
+private extension ALTAppleAPI {
+    /// Renders a server payload for verbose logs: pretty JSON when possible, otherwise the
+    /// raw UTF-8 text (e.g. an HTML error page), otherwise hex.
+    func formatPayloadJSON(_ payload: Any) -> String {
+        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+           let jsonString = String(data: data, encoding: .utf8) {
+            return jsonString
+        }
+        if let data = payload as? Data {
+            return String(data: data, encoding: .utf8) ?? data.map { String(format: "%02x", $0) }.joined()
+        }
+        return "\(payload)"
+    }
+}
+
 // MARK: - Data decryption helpers (used only within this file)
 
 private extension Data {
